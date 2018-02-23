@@ -1,12 +1,10 @@
 package main
 
 import (
-	"io"
-	"io/ioutil"
 	"log"
-	"net/http"
 	"os"
 
+	"github.com/erbesharat/go-ocrtg/helpers"
 	"github.com/joho/godotenv"
 	"github.com/otiai10/gosseract"
 	"gopkg.in/telegram-bot-api.v4"
@@ -37,7 +35,7 @@ func main() {
 		if update.Message.IsCommand() {
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
 			msg.ReplyToMessageID = update.Message.MessageID
-			msg.Text = "Please send a photo as a file"
+			msg.Text = "Please send a picture as a file (wihout compression)"
 			bot.Send(msg)
 			continue
 		}
@@ -45,32 +43,20 @@ func main() {
 		log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
 
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
-		photo := *update.Message.Document
-		url, _ := bot.GetFileDirectURL(photo.FileID)
-		log.Println(url)
+		if update.Message.Document != nil {
+			photo := *update.Message.Document
+			url, _ := bot.GetFileDirectURL(photo.FileID)
 
-		tmpfile, err := ioutil.TempFile("", "template")
-		if err != nil {
-			log.Fatal(err)
+			file := helpers.GetFile(url)
+			defer os.Remove(file.Name())
+
+			msg.ReplyToMessageID = update.Message.MessageID
+			client.SetImage(file.Name())
+			text, _ := client.Text()
+			msg.Text = text
+		} else {
+			msg.Text = "Please send a picture as a file (wihout compression)"
 		}
-		defer os.Remove(tmpfile.Name())
-
-		resp, err := http.Get(url)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer resp.Body.Close()
-
-		n, err := io.Copy(tmpfile, resp.Body)
-		if err != nil {
-			log.Fatal(err)
-		}
-		log.Println(n)
-
-		msg.ReplyToMessageID = update.Message.MessageID
-		client.SetImage(tmpfile.Name())
-		text, _ := client.Text()
-		msg.Text = text
 		bot.Send(msg)
 	}
 }
