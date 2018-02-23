@@ -1,5 +1,5 @@
 # go-ocrtg
-go-ocrtg is a telegram but that uses OCR to convert image to text
+go-ocrtg is a telegram bot that uses OCR to convert image to text
 
 ## Usage
 
