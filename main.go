@@ -23,8 +23,7 @@ func main() {
 	}
 	bot.Debug = true
 	log.Printf("Authorized on account %s", bot.Self.UserName)
-	u := tgbotapi.NewUpdate(0)
-	u.Timeout = 60
+	u := helpers.SetUpdate(0, 60)
 
 	updates, err := bot.GetUpdatesChan(u)
 
@@ -33,16 +32,13 @@ func main() {
 			continue
 		}
 		if update.Message.IsCommand() {
-			msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
-			msg.ReplyToMessageID = update.Message.MessageID
-			msg.Text = "Please send a picture as a file (wihout compression)"
+			msg := helpers.CreateMessage(update, "Please send a picture as a file (wihout compression)")
 			bot.Send(msg)
 			continue
 		}
 
 		log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
 
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
 		if update.Message.Document != nil {
 			photo := *update.Message.Document
 			url, _ := bot.GetFileDirectURL(photo.FileID)
@@ -50,13 +46,14 @@ func main() {
 			file := helpers.GetFile(url)
 			defer os.Remove(file.Name())
 
-			msg.ReplyToMessageID = update.Message.MessageID
 			client.SetImage(file.Name())
 			text, _ := client.Text()
-			msg.Text = text
+
+			msg := helpers.CreateMessage(update, text)
+			bot.Send(msg)
 		} else {
-			msg.Text = "Please send a picture as a file (wihout compression)"
+			msg := helpers.CreateMessage(update, "Please send a picture as a file (wihout compression)")
+			bot.Send(msg)
 		}
-		bot.Send(msg)
 	}
 }
